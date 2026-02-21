@@ -75,8 +75,9 @@ def _fetch_ids_for_category_year(cat_expr: str, year: int, page_size: int = 2000
 
     # FIXME: Too many papers result in error.
     # page through results
-    n_pages = int(_pymath.ceil(total / float(page_size)))
+    n_pages = min(int(_pymath.ceil(total / float(page_size))), 5)
     for p in range(n_pages):
+        print(f'Fetching page {p}/{n_pages}...')
         start = p * page_size
         params = {
             "search_query": q,
