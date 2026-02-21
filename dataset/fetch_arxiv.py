@@ -146,15 +146,17 @@ def ar5iv_text_and_refs(arxiv_id):
     body = re.sub(r"\n{3,}", "\n\n", body)
     return body, refs
 
-ids = ["2601.10679"]
-for aid in ids:
-    try:
-        body, refs = ar5iv_text_and_refs(aid)
-        os.makedirs(f"data/{aid}", exist_ok=True)
-        with open(f"data/{aid}/body.txt", "w", encoding="utf-8") as f:
-            f.write(body)
-        with open(f"data/{aid}/ref.json", "w", encoding="utf-8") as f:
-            json.dump(refs, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print("failed:", aid, e)
-    time.sleep(2)
+def main():
+    ids = ["2601.10679"]
+    for aid in ids:
+        try:
+            body, refs = ar5iv_text_and_refs(aid)
+            os.makedirs(f"data/{aid}", exist_ok=True)
+            with open(f"data/{aid}/body.txt", "w", encoding="utf-8") as f:
+                f.write(body)
+            with open(f"data/{aid}/ref.json", "w", encoding="utf-8") as f:
+                json.dump(refs, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print("failed:", aid, e)
+        time.sleep(2)
+    
