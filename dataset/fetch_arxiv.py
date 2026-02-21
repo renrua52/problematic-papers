@@ -10,6 +10,9 @@ REF_HEAD_RE = re.compile(r"^\s*(references|bibliography|reference|references and
 DOI_RE = re.compile(r"doi\.org/(10\.\d{4,9}/\S+)", re.IGNORECASE)
 ARXIV_RE = re.compile(r"arxiv\.org/(abs|pdf)/([a-z\-]+/\d{7}|\d{4}\.\d{4,5})(?:v\d+)?(?:\.pdf)?", re.IGNORECASE)
 
+# Set to True if you want to keep section numbers like "1 Introduction"
+KEEP_SEC_NUMBER = False
+
 def _normalize_space(s: str) -> str:
     return " ".join(s.split())
 
@@ -51,6 +54,45 @@ def _find_bibliography_container(soup: BeautifulSoup):
             return wrapper
     return None
 
+def _replace_math_with_tex(root: Tag):
+    for m in root.find_all("math"):
+        tex = None
+        sem = m.find("semantics")
+        if sem:
+            for ann in sem.find_all(["annotation", "annotation-xml"]):
+                enc = (ann.get("encoding") or "").lower()
+                if "tex" in enc:
+                    if ann.string and ann.string.strip():
+                        tex = ann.string.strip()
+                    else:
+                        tex = re.sub(r"\s+", " ", ann.get_text(" ", strip=True))
+                    break
+        if tex is None:
+            tex = re.sub(r"\s+", " ", m.get_text(" ", strip=True))
+        disp = ((m.get("display") or "").lower() == "block")
+        repl = ("$$%s$$" % tex) if disp else ("$%s$" % tex)
+        m.replace_with(repl)
+
+def _remove_reference_headings(soup: BeautifulSoup):
+    for h in list(soup.find_all(re.compile(r"^h[1-6]$", re.IGNORECASE))):
+        title = _normalize_space(h.get_text(" ", strip=True))
+        if REF_HEAD_RE.match(title):
+            h.decompose()
+
+def _markdownize_headings(soup: BeautifulSoup, keep_number: bool = False):
+    for h in list(soup.find_all(re.compile(r"^h[1-6]$", re.IGNORECASE))):
+        lvl = max(1, min(6, _heading_level(h.name or "")))
+        h_local = h
+        if not keep_number:
+            for t in h_local.select(".ltx_tag, .ltx_refnum"):
+                t.decompose()
+        title = _normalize_space(h_local.get_text(" ", strip=True))
+        if not title:
+            h.decompose()
+            continue
+        line = "#" * lvl + " " + title
+        h.replace_with(NavigableString("\n" + line + "\n\n"))
+
 def extract_refs(soup: BeautifulSoup):
     cont = _find_bibliography_container(soup)
     if not cont:
@@ -88,14 +130,23 @@ def ar5iv_text_and_refs(arxiv_id):
     soup = BeautifulSoup(r.text, "html.parser")
     for tag in soup(["script", "style", "header", "nav", "footer"]):
         tag.decompose()
+    # 1) normalize math to TeX
+    _replace_math_with_tex(soup)
+    # 2) extract references
     refs = extract_refs(soup)
+    # 3) remove bibliography content and its heading
     bibl = _find_bibliography_container(soup)
     if bibl:
         bibl.decompose()
+    _remove_reference_headings(soup)
+    # 4) markdownize headings
+    _markdownize_headings(soup, keep_number=KEEP_SEC_NUMBER)
+    # 5) text
     body = (soup.find("body") or soup).get_text("\n", strip=True)
+    body = re.sub(r"\n{3,}", "\n\n", body)
     return body, refs
 
-ids = ["2101.00001", "2101.00002"]
+ids = ["2601.10679"]
 for aid in ids:
     try:
         body, refs = ar5iv_text_and_refs(aid)
@@ -107,5 +158,3 @@ for aid in ids:
     except Exception as e:
         print("failed:", aid, e)
     time.sleep(2)
-
-
