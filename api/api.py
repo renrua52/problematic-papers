@@ -6,7 +6,7 @@ client = OpenAI(
     base_url=os.environ["OPENAI_API_BASE"]
 )
 
-def chat(prompt, model="gemini-2.5-flash-lite"):
+def chat(prompt, model="gemini-2.5-pro"):
     resp = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
