@@ -1,5 +1,5 @@
 # In order to use import correctly, you should run this (in root) with something like:
-# python -m pipeline.get_metrics 2026 --num_sample 10 --seed 1
+# python -m pipeline.get_metrics 2026 --num_sample 5 --seed 1
 
 # Preferably, use argparse and arguments in commands, rather than writing things like number of samples in code.
 
