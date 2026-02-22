@@ -6,7 +6,7 @@ client = OpenAI(
     base_url=os.environ["OPENAI_API_BASE"]
 )
 
-def chat(prompt, model="gemini-2.5-pro"):
+def chat(prompt, model="gemini-2.5-flash"):
     resp = client.chat.completions.create(
         model=model,
         messages=[{"role": "user", "content": prompt}],
@@ -21,5 +21,7 @@ def extract_score(s):
     if m:
         val_str = m.group(1)
         val = float(val_str) if ("." in val_str) else int(val_str)
+    else:
+        print(s)
     return val
 
